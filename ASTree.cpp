@@ -1269,6 +1269,7 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
                 curblock = blocks.top();
             }
             break;
+        case Pyc::JUMP_IF_NOT_EXC_MATCH_A:
         case Pyc::JUMP_FORWARD_A:
             {
                 int offs = operand;
