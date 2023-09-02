@@ -1038,7 +1038,9 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
         case Pyc::JUMP_IF_TRUE_OR_POP_A:
         case Pyc::POP_JUMP_IF_FALSE_A:
         case Pyc::POP_JUMP_IF_TRUE_A:
-        case Pyc::POP_JUMP_FORWARD_IF_FALSE_A:
+        case Pyc::POP_JUMP_FORWARD_IF_FALSE_A:       
+        case Pyc::JUMP_IF_NOT_EXC_MATCH_A:
+        case Pyc::MAKE_CELL:
         case Pyc::POP_JUMP_FORWARD_IF_TRUE_A:
             {
                 PycRef<ASTNode> cond = stack.top();
@@ -1269,7 +1271,6 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
                 curblock = blocks.top();
             }
             break;
-        case Pyc::JUMP_IF_NOT_EXC_MATCH_A:
         case Pyc::JUMP_FORWARD_A:
             {
                 int offs = operand;
@@ -2421,7 +2422,7 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
             stack.push(nullptr);
             break;
         default:
-            fprintf(stderr, "Unsupported opcode: %s\n", Pyc::OpcodeName(opcode & 0xFF));
+            fprintf(stderr, "Unsupportedd opcode: %s\n", Pyc::OpcodeName(opcode & 0xFF));
             cleanBuild = false;
             return new ASTNodeList(defblock->nodes());
         }
