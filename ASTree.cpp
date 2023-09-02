@@ -1488,6 +1488,7 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
             }
             break;
         case Pyc::PUSH_EXC_INFO:
+        case Pyc::COPY_A:
         case Pyc::JUMP_BACKWARD_A:
         case Pyc::MAKE_CELL_A: 
             stack.push(new ASTName(code->getCellVar(mod, operand)));
