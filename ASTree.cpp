@@ -2445,8 +2445,8 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
             break;
         default:
             fprintf(stderr, "Unsupported opcode: %s\n", Pyc::OpcodeName(opcode & 0xFF));
-            cleanBuild = false;
-            return new ASTNodeList(defblock->nodes());
+            // cleanBuild = false;
+            // return new ASTNodeList(defblock->nodes());
         }
 
         else_pop =  ( (curblock->blktype() == ASTBlock::BLK_ELSE)
