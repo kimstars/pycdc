@@ -142,6 +142,7 @@ void output_object(PycRef<PycObject> obj, PycModule* mod, int indent,
             bc_disasm(pyc_output, codeObj, mod, indent + 2, flags);
 
             if (mod->verCompare(1, 5) >= 0 && (flags & Pyc::DISASM_PYCODE_VERBOSE) != 0) {
+                iprintf(pyc_output, indent + 1, "First Line: %d\n", codeObj->firstLine());
                 iputs(pyc_output, indent + 1, "[Line Number Table]\n");
                 output_object(codeObj->lnTable().cast<PycObject>(), mod, indent + 2, flags, pyc_output);
             }
@@ -183,14 +184,9 @@ void output_object(PycRef<PycObject> obj, PycModule* mod, int indent,
     case PycObject::TYPE_DICT:
         {
             iputs(pyc_output, indent, "{\n");
-            PycDict::key_t keys = obj.cast<PycDict>()->keys();
-            PycDict::value_t values = obj.cast<PycDict>()->values();
-            PycDict::key_t::const_iterator ki = keys.begin();
-            PycDict::value_t::const_iterator vi = values.begin();
-            while (ki != keys.end()) {
-                output_object(*ki, mod, indent + 1, flags, pyc_output);
-                output_object(*vi, mod, indent + 2, flags, pyc_output);
-                ++ki, ++vi;
+            for (const auto& val : obj.cast<PycDict>()->values()) {
+                output_object(std::get<0>(val), mod, indent + 1, flags, pyc_output);
+                output_object(std::get<1>(val), mod, indent + 2, flags, pyc_output);
             }
             iputs(pyc_output, indent, "}\n");
         }
