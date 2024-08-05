@@ -978,29 +978,14 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
         case Pyc::FORMAT_VALUE_A:
             {
                 auto conversion_flag = static_cast<ASTFormattedValue::ConversionFlag>(operand);
-                switch (conversion_flag) {
-                case ASTFormattedValue::ConversionFlag::NONE:
-                case ASTFormattedValue::ConversionFlag::STR:
-                case ASTFormattedValue::ConversionFlag::REPR:
-                case ASTFormattedValue::ConversionFlag::ASCII:
-                    {
-                        auto val = stack.top();
-                        stack.pop();
-                        stack.push(new ASTFormattedValue(val, conversion_flag, nullptr));
-                    }
-                    break;
-                case ASTFormattedValue::ConversionFlag::FMTSPEC:
-                    {
-                        auto format_spec = stack.top();
-                        stack.pop();
-                        auto val = stack.top();
-                        stack.pop();
-                        stack.push(new ASTFormattedValue(val, conversion_flag, format_spec));
-                    }
-                    break;
-                default:
-                    fprintf(stderr, "Unsupported FORMAT_VALUE_A conversion flag: %d\n", operand);
+                PycRef<ASTNode> format_spec = nullptr;
+                if (conversion_flag & ASTFormattedValue::HAVE_FMT_SPEC) {
+                    format_spec = stack.top();
+                    stack.pop();
                 }
+                auto val = stack.top();
+                stack.pop();
+                stack.push(new ASTFormattedValue(val, conversion_flag, format_spec));
             }
             break;
         case Pyc::GET_AWAITABLE:
@@ -1892,6 +1877,7 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
             // Ignore
             break;
         case Pyc::SETUP_WITH_A:
+        case Pyc::WITH_EXCEPT_START:
             {
                 PycRef<ASTBlock> withblock = new ASTWithBlock(pos+operand);
                 blocks.push(withblock);
@@ -2471,6 +2457,24 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
         case Pyc::GEN_START_A:
             stack.pop();
             break;
+        case Pyc::SWAP_A:
+            {
+                unpack = operand;
+                ASTTuple::value_t values;
+                ASTTuple::value_t next_tuple;
+                values.resize(operand);
+                for (int i = 0; i < operand; i++) {
+                    values[operand - i - 1] = stack.top();
+                    stack.pop();
+                }
+                auto tup = new ASTTuple(values);
+                tup->setRequireParens(false);
+                auto next_tup = new ASTTuple(next_tuple);
+                next_tup->setRequireParens(false);
+                stack.push(tup);
+                stack.push(next_tup);
+            }
+            break;
         default:
             fprintf(stderr, "Unsupporteddwhere opcode: %s\n", Pyc::OpcodeName(opcode & 0xFF));
             cleanBuild = false;
@@ -2648,23 +2652,21 @@ void print_formatted_value(PycRef<ASTFormattedValue> formatted_value, PycModule*
     pyc_output << "{";
     print_src(formatted_value->val(), mod, pyc_output);
 
-    switch (formatted_value->conversion()) {
-    case ASTFormattedValue::ConversionFlag::NONE:
+    switch (formatted_value->conversion() & ASTFormattedValue::CONVERSION_MASK) {
+    case ASTFormattedValue::NONE:
         break;
-    case ASTFormattedValue::ConversionFlag::STR:
+    case ASTFormattedValue::STR:
         pyc_output << "!s";
         break;
-    case ASTFormattedValue::ConversionFlag::REPR:
+    case ASTFormattedValue::REPR:
         pyc_output << "!r";
         break;
-    case ASTFormattedValue::ConversionFlag::ASCII:
+    case ASTFormattedValue::ASCII:
         pyc_output << "!a";
         break;
-    case ASTFormattedValue::ConversionFlag::FMTSPEC:
+    }
+    if (formatted_value->conversion() & ASTFormattedValue::HAVE_FMT_SPEC) {
         pyc_output << ":" << formatted_value->format_spec().cast<ASTObject>()->object().cast<PycString>()->value();
-        break;
-    default:
-        fprintf(stderr, "Unsupported NODE_FORMATTEDVALUE conversion flag: %d\n", formatted_value->conversion());
     }
     pyc_output << "}";
 }

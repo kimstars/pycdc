@@ -230,7 +230,7 @@ void print_const(std::ostream& pyc_output, PycRef<PycObject> obj, PycModule* mod
         formatted_print(pyc_output, "%d", obj.cast<PycInt>()->value());
         break;
     case PycObject::TYPE_LONG:
-        formatted_print(pyc_output, "%s", obj.cast<PycLong>()->repr().c_str());
+        formatted_print(pyc_output, "%s", obj.cast<PycLong>()->repr(mod).c_str());
         break;
     case PycObject::TYPE_FLOAT:
         formatted_print(pyc_output, "%s", obj.cast<PycFloat>()->value());
@@ -330,6 +330,11 @@ void bc_disasm(std::ostream& pyc_output, PycRef<PycCode> code, PycModule* mod,
         "INTRINSIC_SET_FUNCTION_TYPE_PARAMS",
     };
     static const size_t intrinsic2_names_len = sizeof(intrinsic2_names) / sizeof(intrinsic2_names[0]);
+
+    static const char *format_value_names[] = {
+        "FVC_NONE", "FVC_STR", "FVC_REPR", "FVC_ASCII",
+    };
+    static const size_t format_value_names_len = sizeof(format_value_names) / sizeof(format_value_names[0]);
 
     PycBuffer source(code->code()->value(), code->code()->length());
 
@@ -529,6 +534,18 @@ void bc_disasm(std::ostream& pyc_output, PycRef<PycCode> code, PycModule* mod,
                     formatted_print(pyc_output, "%d (%s)", operand, intrinsic2_names[operand]);
                 else
                     formatted_print(pyc_output, "%d (UNKNOWN)", operand);
+                break;
+            case Pyc::FORMAT_VALUE_A:
+                {
+                    auto conv = static_cast<size_t>(operand & 0x03);
+                    const char *flag = (operand & 0x04) ? " | FVS_HAVE_SPEC" : "";
+                    if (conv < format_value_names_len) {
+                        formatted_print(pyc_output, "%d (%s%s)", operand,
+                                        format_value_names[conv], flag);
+                    } else {
+                        formatted_print(pyc_output, "%d (UNKNOWN)", operand);
+                    }
+                }
                 break;
             default:
                 formatted_print(pyc_output, "%d", operand);
